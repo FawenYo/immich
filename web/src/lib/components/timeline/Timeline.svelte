@@ -128,10 +128,6 @@
     timelineManager.scrollableElement = scrollableElement;
   });
 
-  const scrollToTop = () => {
-    timelineManager.scrollTo(0);
-  };
-
   const getAssetHeight = (assetId: string, monthGroup: MonthGroup) => monthGroup.findAssetAbsolutePosition(assetId);
 
   const scrollToAssetId = async (assetId: string) => {
@@ -141,7 +137,6 @@
     }
 
     const height = getAssetHeight(assetId, monthGroup);
-
     timelineManager.scrollTo(height);
     return true;
   };
@@ -160,7 +155,7 @@
     if (timelineManager.viewportHeight === 0 || timelineManager.viewportWidth === 0) {
       // this can happen if you do the following navigation order
       // /photos?at=<id>, /photos/<id>, http://example.com, browser back, browser back
-      const rect = element?.getBoundingClientRect();
+      const rect = scrollableElement?.getBoundingClientRect();
       if (rect) {
         timelineManager.viewportHeight = rect.height;
         timelineManager.viewportWidth = rect.width;
@@ -174,7 +169,7 @@
       }
       if (!scrolled) {
         // if the asset is not found, scroll to the top
-        scrollTo(0);
+        timelineManager.scrollTo(0);
       }
     }
     invisible = false;
@@ -182,7 +177,9 @@
 
   beforeNavigate(({ from, to }) => {
     timelineManager.suspendTransitions = true;
-    hasNavigatedToOrFromAssetViewer = isAssetViewerRoute(to) || isAssetViewerRoute(from);
+    const toViewer = isAssetViewerRoute(to);
+    const fromViewer = isAssetViewerRoute(from);
+    hasNavigatedToOrFromAssetViewer = (toViewer && !fromViewer) || (fromViewer && !toViewer);
   });
 
   // tri-state boolean
@@ -258,9 +255,9 @@
     const topOffset = monthGroup.top;
     const maxScrollPercent = getMaxScrollPercent();
     const delta = monthGroup.height * monthGroupScrollPercent;
-    const scrollToTop = (topOffset + delta) * maxScrollPercent;
+    const offset = (topOffset + delta) * maxScrollPercent;
 
-    timelineManager.scrollTo(scrollToTop);
+    timelineManager.scrollTo(offset);
   };
 
   // note: don't throttle, debounce, or otherwise make this function async - it causes flicker
